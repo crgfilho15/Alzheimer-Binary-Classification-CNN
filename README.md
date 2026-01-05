@@ -29,6 +29,11 @@ I conducted four distinct experiments to optimize performance and analyze model 
 | **3. Deep CNN + Dropout** | **98%** | **0.97** | **0.99** | **Best Model.** Excellent generalization and lowest False Negative rate (2). |
 | **4. Transfer Learning (VGG16)** | 77% | - | - | **Underfitting.** Frozen layers were not sufficient for specific feature extraction. |
 
+### 🏆 Best Model Performance (Deep CNN + Dropout)
+The confusion matrix below demonstrates the model's ability to minimize False Negatives (Critical in medical diagnosis):
+
+![Confusion Matrix](images/confusion_matrix_best.png)
+
 ### Why Model 3 Won?
 While Transfer Learning (VGG16) is often the "go-to" solution, in this specific binary context, the frozen VGG16 layers were too generic. The **Custom Deep CNN with Dropout** (Model 3) managed to learn specific MRI features without memorizing the training data, achieving a nearly perfect confusion matrix.
 
