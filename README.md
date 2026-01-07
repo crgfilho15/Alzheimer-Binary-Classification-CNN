@@ -43,7 +43,7 @@ Contrary to the common belief that Transfer Learning (VGG16) is always superior,
 | **3. Deep CNN + BN + Dropout** | **98%** | **0.97** | **Best Model.** High stability, fast convergence, and excellent generalization. |
 | **4. Transfer Learning (VGG16)** | 84% | 0.86 | **Underfitting.** Generic ImageNet weights failed to capture subtle MRI textures. |
 
-![Comparison Charts](images/performance_comparison.png)
+![Comparison Charts](images/comparison_charts.png)
 
 ### 2. Confusion Matrix Analysis (The "Tie-Breaker")
 While the Baseline and the Deep Model achieved similar numeric scores, the detailed analysis reveals why Model 3 is superior for production.
