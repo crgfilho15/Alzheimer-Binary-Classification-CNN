@@ -75,7 +75,7 @@ The VGG16 model, trained on colorful real-world images (ImageNet), struggled to 
 ## 🚀 How to Run
 1.  Clone the repository:
     ```bash
-    git clone [https://github.com/YOUR_USERNAME/alzheimer-detection-cnn.git](https://github.com/YOUR_USERNAME/alzheimer-detection-cnn.git)
+    git clone [https://github.com/crgfilho15/Alzheimer-Binary-Classification-CNN](https://github.com/crgfilho15/Alzheimer-Binary-Classification-CNN )
     ```
 2.  Install dependencies:
     ```bash
