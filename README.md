@@ -1,87 +1,73 @@
-# Alzheimer’s Disease Binary Classification (ND vs. VMD)
+# Alzheimer's MRI Classification: Non-Demented vs Very Mild Demented
 
-![Project Status](https://img.shields.io/badge/Status-Completed-success) ![Python](https://img.shields.io/badge/Python-3.10-blue) ![TensorFlow](https://img.shields.io/badge/Framework-TensorFlow-orange)
+Comparison of four CNN setups for binary classification of brain MRI slices (Non-Demented, ND, versus Very Mild Demented, VMD), with recall on the VMD class as the main metric. This is a research and learning project, not a clinical tool.
 
-## 📌 Project Overview
-This project focuses on the binary classification of Alzheimer's Disease using MRI scans, specifically distinguishing between **Non-Demented (ND)** and **Very Mild Demented (VMD)** patients.
+Author: Carlos Roberto Garcia (MSc Data Science and Engineering, UTAD, Portugal)
 
-The goal is to assist in early diagnosis using Deep Learning, prioritizing the minimization of **False Negatives** (missed diagnoses), which is the most critical error in medical contexts.
+## Why recall
 
-* **Context:** Master in Data Engineering and Data Science @ **UTAD (Portugal)**.
-* **Author:** Carlos Roberto Souza Garcia Filho.
+In screening, a missed case (false negative) costs more than a false alarm. All models are therefore compared on VMD recall first and accuracy second.
 
-## 🧠 The Challenge
-Detecting Alzheimer's at the "Very Mild" stage is visually challenging due to the subtle differences in brain tissue contrast.
-This project moves beyond standard accuracy metrics, conducting a comparative study of 4 approaches to find the architecture that offers the best **Recall (Sensitivity)** without overfitting.
+## Data
 
-**Dataset:** [Alzheimer's Classification Dataset (Kaggle)](https://www.kaggle.com/datasets/kanaadlimaye/alzheimers-classification-dataset)
-* **Input:** MRI Images (resized to 224x224).
-* **Classes:** Non-Demented (Healthy) vs. Very Mild Demented.
+- Source: [Alzheimer's Classification Dataset (Kaggle)](https://www.kaggle.com/datasets/kanaadlimaye/alzheimers-classification-dataset), downloaded with `kagglehub`.
+- Only the ND and VMD classes are used. Fixed split from the dataset: 7,574 train, 1,092 validation, 549 test images (230 VMD in the test set).
+- Images are resized to 224x224 and replicated to 3 channels.
+- The dataset has no patient identifiers, so a patient-level split cannot be verified. See "Limitations".
 
-## 🧪 Methodology & Experiments
-I implemented and compared four distinct experimental setups:
+## Experiments
 
-1.  **Baseline CNN:** A simple 2-block Convolutional Neural Network to establish a performance benchmark.
-2.  **Data Augmentation:** Applying rotation, zoom, and shifts to test if artificially increasing dataset diversity aids generalization.
-3.  **Deep CNN + BatchNormalization + Dropout (Proposed Solution):**
-    * **Increased Depth:** 4 Convolutional blocks (up to 256 filters) to capture high-level abstract features.
-    * **Batch Normalization:** Applied after every convolution to stabilize learning and allow faster convergence.
-    * **Dropout (0.5):** Robust regularization applied to the dense layers to prevent overfitting.
-    * **Fine-Tuning:** Lower learning rate (`1e-4`) for precise convergence.
-4.  **Transfer Learning (VGG16):** Using a pre-trained VGG16 model (frozen ImageNet weights) with a custom classifier head.
+| Setup | Description |
+| :--- | :--- |
+| 1. Baseline CNN | 2 convolutional blocks, dense head |
+| 2. Baseline + augmentation | Same network with rotation (20 degrees), shifts, shear, zoom and horizontal flip |
+| 3. Deep CNN | 4 convolutional blocks (32 to 256 filters), batch normalization, dropout 0.5, learning rate 1e-4 |
+| 4. VGG16, frozen | ImageNet weights frozen, flatten and dense head trained, no fine-tuning |
 
-## 📊 Performance Analysis
+Early stopping on validation loss with best weights restored (patience 5; patience 6 for the deep CNN), seed 42, one run per setup.
 
-Contrary to the common belief that Transfer Learning (VGG16) is always superior, this study revealed that **simpler, custom-built architectures** performed significantly better for this specific grayscale medical task.
+## Results (test set, one run)
 
-### 1. Quantitative Results
+| Setup | Accuracy | VMD recall |
+| :--- | :--- | :--- |
+| 1. Baseline CNN | 0.97 | 0.94 |
+| 2. Baseline + augmentation | 0.68 | 0.48 |
+| 3. Deep CNN | 0.98 | 0.97 |
+| 4. VGG16, frozen | 0.84 | 0.86 |
 
-| Model | Accuracy | Recall (VMD) | Key Observation |
-| :--- | :--- | :--- | :--- |
-| **1. Baseline** | 97% | 0.94 | High accuracy, but prone to overfitting (unstable validation loss). |
-| **2. Data Augmentation** | 68% | 0.48 | **Underfitting.** Transformations were too aggressive for the dataset size. |
-| **3. Deep CNN + BN + Dropout** | **98%** | **0.97** | **Best Model.** High stability, fast convergence, and excellent generalization. |
-| **4. Transfer Learning (VGG16)** | 84% | 0.86 | **Underfitting.** Generic ImageNet weights failed to capture subtle MRI textures. |
+The deep CNN missed about 7 of 230 VMD cases (recall 0.97, 95% Wilson interval 0.94 to 0.985). The baseline recall of 0.94 has an interval of 0.90 to 0.96. The intervals overlap, so with one run and one seed these results do not establish that the deep CNN is better than the baseline.
 
-![Comparison Charts](images/comparison_charts.png)
+## Limitations
 
-### 2. Confusion Matrix Analysis (The "Tie-Breaker")
-While the Baseline and the Deep Model achieved similar numeric scores, the detailed analysis reveals why Model 3 is superior for production.
+- **Possible slice-level leakage.** MRI datasets built from 2D slices often put slices of the same patient in both train and test, which inflates scores. This dataset provides no patient IDs, so it cannot be ruled out. Two observations are consistent with it: the baseline reaches 0.97 while training accuracy is near 1.0, and mild augmentation drops accuracy from 0.97 to 0.68, which suggests the baseline relies on exact pixel positions. `leak_audit.py` measures exact duplicates, near duplicates and a 1-nearest-neighbour baseline across splits.
+- **Audit result:** [FILL after running leak_audit.py: duplicates found, share of near duplicates, 1-NN accuracy and recall on test].
+- **Unstable validation.** For the deep CNN, validation accuracy varies between roughly 0.80 and 0.98 across epochs even though training accuracy is above 0.99. The model with the best validation loss is restored, but the curves are not "aligned".
+- **VGG16 was only tested frozen.** It was trained without fine-tuning and with default settings, so the result says that a frozen ImageNet backbone underperformed here, not that transfer learning does not work for MRI.
+- **Single run.** No repeated seeds, no cross-validation, no confidence intervals beyond the one above.
+- **Decision threshold fixed at 0.5.** For a recall-first goal the threshold should be tuned on validation data, and precision-recall and ROC curves reported.
+- **Not clinical.** Results come from one public dataset and have no external validation.
 
-![Confusion Matrix Grid](images/confusion_matrix_grid.png)
+## Reproduce
 
-* **VGG16 Failure:** Missed a significant number of positive cases (High False Negatives).
-* **The Winner (Model 3):** The combination of **4 Convolutional Layers** with **Batch Normalization** allowed the model to learn more complex features than the Baseline, while **Dropout** kept the training stable. It achieved the lowest False Negative rate, missing only 7 cases in the entire test set.
+1. Open `Alzheimer_Detection_Analysis.ipynb` in Google Colab (GPU recommended).
+2. Run all cells. The dataset downloads automatically through `kagglehub`.
+3. Run the audit after the download cell:
 
-## 🏆 Why Model 3 Won?
-**1. Capacity vs. Control:**
-The Baseline (2 layers) was accurate but unstable. By increasing the depth to **4 layers (256 filters)**, we gave the model "brain power" to understand subtle MRI textures. Normally, this would cause overfitting, but **Batch Normalization** and **Dropout** acted as "guardrails", keeping the model generalized.
+```bash
+python leak_audit.py --root "<dataset_path>/Alzheimers_Detection_dataset"
+```
 
-**2. Domain Specificity:**
-The VGG16 model, trained on colorful real-world images (ImageNet), struggled to adapt its frozen weights to grayscale medical scans. The Custom CNN learned these specific features from scratch, proving that **targeted architecture design beats generic pre-trained models.**
+Dependencies: tensorflow, pandas, numpy, scikit-learn, matplotlib, seaborn, kagglehub, pillow.
 
-## 🛠️ Tech Stack
-* **Language:** Python
-* **Deep Learning:** TensorFlow / Keras
-* **Data Processing:** Pandas, NumPy
-* **Visualization:** Matplotlib, Seaborn
-* **Metrics:** Scikit-learn (Confusion Matrix, Classification Report)
-* **Environment:** Google Colab (GPU T4)
+## Repository
 
-## 📂 Repository Structure
-* `notebooks/`: Contains the Jupyter Notebook with the complete training pipeline.
-* `images/`: Confusion matrices, loss curves, and analysis charts.
+- `Alzheimer_Detection_Analysis.ipynb`: full pipeline and the four experiments
+- `leak_audit.py`: split diagnostics
+- `images/`: confusion matrices and comparison charts
 
-## 🚀 How to Run
-1.  Clone the repository:
-    ```bash
-    git clone [https://github.com/crgfilho15/Alzheimer-Binary-Classification-CNN](https://github.com/crgfilho15/Alzheimer-Binary-Classification-CNN )
-    ```
-2.  Install dependencies:
-    ```bash
-    pip install tensorflow pandas matplotlib seaborn scikit-learn kagglehub
-    ```
-3.  Run the notebook. The dataset is automatically downloaded via the `kagglehub` API (no manual setup required).
+## Next steps
 
----
-*Author: Carlos Roberto Souza Garcia Filho*
+- Evaluate on a dataset with patient identifiers and split by patient
+- Repeat each setup over several seeds and report mean and interval
+- Fine-tune the VGG16 backbone and compare again
+- Tune the decision threshold for recall and report the precision cost
